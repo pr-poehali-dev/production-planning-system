@@ -1,0 +1,19 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "No API key returns 503",
+      "method": "POST",
+      "path": "/",
+      "body": {"orders": [], "workers": [], "equipment": [], "stock": [], "planDays": []},
+      "expectedStatus": 503,
+      "expectedBody": {"ok": false},
+      "bodyMatcher": "partial"
+    }
+  ]
+}

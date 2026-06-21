@@ -33,6 +33,7 @@ export interface Order {
   priority: string;
   status: OrderStatus;
   progress: number;
+  closedAt?: number;
   operations: Operation[];
   materials: Material[];
   files: { name: string; kind: 'docx' | 'xlsx' }[];
@@ -62,6 +63,22 @@ export interface ShiftTask {
   operation: string;
   planQty: number;
   hours: number;
+}
+
+export interface StockItem {
+  id: number;
+  name: string;
+  steel: string;
+  spec: string;
+  qty: number;
+  unit: string;
+  order?: string;
+}
+
+export interface AiSettings {
+  systemPrompt: string;
+  userDocs: string;
+  functionUrl: string;
 }
 
 const INITIAL_ORDERS: Order[] = [
@@ -133,25 +150,68 @@ const INITIAL_SHIFTS: ShiftTask[] = [
   { date: '26.06', worker: 'Иванова Е.С.', order: 'П-2030', operation: 'Сборка челюстей', planQty: 2, hours: 7 },
 ];
 
+const INITIAL_STOCK: StockItem[] = [
+  { id: 1, name: 'Шток', steel: '40Х', spec: 'Ø50 × 700', qty: 4, unit: 'шт', order: 'П-2041' },
+  { id: 2, name: 'Гильза', steel: '30ХГСА', spec: 'Ø80 × 750', qty: 2, unit: 'шт', order: 'П-2041' },
+  { id: 3, name: 'Уплотнения', steel: '—', spec: 'комплект РТИ', qty: 5, unit: 'компл.' },
+  { id: 4, name: 'Лист стальной', steel: '10ХСНД', spec: '20 × 600 × 800', qty: 3, unit: 'шт' },
+  { id: 5, name: 'Втулки', steel: '35', spec: 'Ø30 запрессовка', qty: 0, unit: 'шт', order: 'П-2038' },
+  { id: 6, name: 'Краска грунт', steel: '—', spec: 'ГФ-021', qty: 2, unit: 'кг' },
+  { id: 7, name: 'Шток', steel: '20Х13', spec: 'Ø60 × 900', qty: 0, unit: 'шт', order: 'П-2030' },
+];
+
+const DEFAULT_SYSTEM_PROMPT = `Ты — система автоматического планирования производства гидроцилиндров и металлоконструкций.
+Твоя задача: составить оптимальный двухнедельный пооперационный план в формате сменных заданий.
+
+ПРАВИЛА:
+1. Приоритет: Особо важный > Срочный > Повышенный > Обычный
+2. Учитывай зависимости операций (predecessors)
+3. Не назначай недоступных сотрудников (available=false)
+4. Оборудование в состоянии Сломано/ТО — не использовать
+5. Дефицит материала — операция заблокирована
+6. Коэффициент УЦИ = 0.75, максимум 10 ч/день на сотрудника
+7. Выполненные операции не включать
+
+ФОРМАТ — только JSON:
+{"shifts":[{"date":"ДД.ММ","worker":"Фамилия И.О.","order":"П-ХXXX","operation":"Название","planQty":1,"hours":6.0}],"summary":"Пояснение"}`;
+
+const AI_FUNCTION_URL = 'https://functions.poehali.dev/a570be4e-feb4-4a70-9be3-920449b6d5d1';
+
 interface StoreCtx {
   orders: Order[];
+  archivedOrders: Order[];
   workers: Worker[];
   equipment: Equipment[];
   shifts: ShiftTask[];
+  stock: StockItem[];
+  aiSettings: AiSettings;
   addOrder: (o: Order) => void;
   cycleStatus: (id: string) => void;
   updateWorker: (id: number, patch: Partial<Worker>) => void;
   updateEquipment: (id: number, patch: Partial<Equipment>) => void;
   getOrder: (id: string) => Order | undefined;
+  setShifts: (shifts: ShiftTask[]) => void;
+  addStockItem: (item: Omit<StockItem, 'id'>) => void;
+  updateStockItem: (id: number, patch: Partial<StockItem>) => void;
+  deleteStockItem: (id: number) => void;
+  adjustStockQty: (id: number, delta: number) => void;
+  setAiSettings: (s: Partial<AiSettings>) => void;
 }
 
 const Ctx = createContext<StoreCtx | null>(null);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
+  const [archivedOrders, setArchivedOrders] = useState<Order[]>([]);
   const [workers, setWorkers] = useState<Worker[]>(INITIAL_WORKERS);
   const [equipment, setEquipment] = useState<Equipment[]>(INITIAL_EQUIPMENT);
-  const [shifts] = useState<ShiftTask[]>(INITIAL_SHIFTS);
+  const [shifts, setShifts] = useState<ShiftTask[]>(INITIAL_SHIFTS);
+  const [stock, setStock] = useState<StockItem[]>(INITIAL_STOCK);
+  const [aiSettings, setAiSettingsState] = useState<AiSettings>({
+    systemPrompt: DEFAULT_SYSTEM_PROMPT,
+    userDocs: '',
+    functionUrl: AI_FUNCTION_URL,
+  });
 
   const addOrder = (o: Order) => setOrders((p) => [o, ...p]);
 
@@ -159,10 +219,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setOrders((p) =>
       p.map((o) => {
         if (o.id !== id) return o;
-        const next: OrderStatus = o.status === 'Не начат' ? 'В работе' : o.status === 'В работе' ? 'Завершён' : 'Не начат';
-        return { ...o, status: next };
+        const next: OrderStatus =
+          o.status === 'Не начат' ? 'В работе'
+            : o.status === 'В работе' ? 'Завершён'
+            : 'Не начат';
+        const closedAt = next === 'Завершён' ? Date.now() : undefined;
+        return { ...o, status: next, closedAt };
       })
     );
+
+  const moveToArchive = () => {
+    const now = Date.now();
+    const DAY = 24 * 60 * 60 * 1000;
+    setOrders((p) => {
+      const toArchive = p.filter((o) => o.status === 'Завершён' && o.closedAt && now - o.closedAt > DAY);
+      if (toArchive.length > 0) setArchivedOrders((a) => [...a, ...toArchive]);
+      return p.filter((o) => !(o.status === 'Завершён' && o.closedAt && now - o.closedAt > DAY));
+    });
+  };
+
+  if (typeof window !== 'undefined') {
+    setTimeout(moveToArchive, 1000);
+  }
 
   const updateWorker = (id: number, patch: Partial<Worker>) =>
     setWorkers((p) => p.map((w) => (w.id === id ? { ...w, ...patch } : w)));
@@ -170,10 +248,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updateEquipment = (id: number, patch: Partial<Equipment>) =>
     setEquipment((p) => p.map((e) => (e.id === id ? { ...e, ...patch } : e)));
 
-  const getOrder = (id: string) => orders.find((o) => o.id === id);
+  const getOrder = (id: string) =>
+    orders.find((o) => o.id === id) || archivedOrders.find((o) => o.id === id);
+
+  let nextStockId = INITIAL_STOCK.length + 1;
+  const addStockItem = (item: Omit<StockItem, 'id'>) =>
+    setStock((p) => [...p, { ...item, id: nextStockId++ }]);
+
+  const updateStockItem = (id: number, patch: Partial<StockItem>) =>
+    setStock((p) => p.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+
+  const deleteStockItem = (id: number) =>
+    setStock((p) => p.filter((s) => s.id !== id));
+
+  const adjustStockQty = (id: number, delta: number) =>
+    setStock((p) => p.map((s) => s.id === id ? { ...s, qty: Math.max(0, s.qty + delta) } : s));
+
+  const setAiSettings = (patch: Partial<AiSettings>) =>
+    setAiSettingsState((p) => ({ ...p, ...patch }));
 
   return (
-    <Ctx.Provider value={{ orders, workers, equipment, shifts, addOrder, cycleStatus, updateWorker, updateEquipment, getOrder }}>
+    <Ctx.Provider value={{
+      orders, archivedOrders, workers, equipment, shifts, stock, aiSettings,
+      addOrder, cycleStatus, updateWorker, updateEquipment, getOrder, setShifts,
+      addStockItem, updateStockItem, deleteStockItem, adjustStockQty, setAiSettings,
+    }}>
       {children}
     </Ctx.Provider>
   );
