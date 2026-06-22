@@ -23,12 +23,14 @@ export default function Index() {
 
   const {
     orders, archivedOrders, workers, equipment, shifts, stock, kb, aiSettings,
+    addOrder: _addOrder, deleteOrder,
     updateWorker, addWorker, deleteWorker,
     updateEquipment, addEquipment, deleteEquipment,
     addStockItem, updateStockItem, deleteStockItem, adjustStockQty,
     addKbItem, updateKbItem, deleteKbItem,
     setAiSettings, setShifts,
   } = useStore();
+  void _addOrder; // used via CreateOrderDialog which has direct store access
 
   const activeOrders = orders.filter((o) => o.status !== 'Завершён');
   const opsInWork = orders.flatMap((o) => o.operations).filter((op) => op.status === 'В процессе').length;
@@ -130,6 +132,7 @@ export default function Index() {
               setOrderSearch={setOrderSearch}
               ordersTab={ordersTab}
               setOrdersTab={setOrdersTab}
+              onDeleteOrder={deleteOrder}
             />
           )}
 

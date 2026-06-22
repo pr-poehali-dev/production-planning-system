@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { useAuth, Role, ROLE_LABELS } from '@/lib/auth';
 import { AiSettings } from '@/lib/store';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 interface ManagedUser {
   id: number;
@@ -111,6 +112,7 @@ export default function SectionAdmin({ aiSettings, setAiSettings }: Props) {
   const [tab, setTab] = useState<'users' | 'ai'>('users');
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [dialog, setDialog] = useState<{ open: boolean; data: Partial<ManagedUser> }>({ open: false, data: {} });
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
 
   const loadUsers = useCallback(async () => {
@@ -195,7 +197,7 @@ export default function SectionAdmin({ aiSettings, setAiSettings }: Props) {
                         <div className="flex gap-1">
                           <button onClick={() => setDialog({ open: true, data: u })} className="w-7 h-7 rounded hover:bg-secondary flex items-center justify-center"><Icon name="Pencil" size={13} className="text-muted-foreground" /></button>
                           {u.id !== user?.id && (
-                            <button onClick={() => deleteUser(u.id)} className="w-7 h-7 rounded hover:bg-destructive/10 flex items-center justify-center"><Icon name="Trash2" size={13} className="text-destructive" /></button>
+                            <button onClick={() => setConfirmDeleteId(u.id)} className="w-7 h-7 rounded hover:bg-destructive/10 flex items-center justify-center"><Icon name="Trash2" size={13} className="text-destructive" /></button>
                           )}
                         </div>
                       </td>
@@ -266,6 +268,14 @@ export default function SectionAdmin({ aiSettings, setAiSettings }: Props) {
       <Dialog open={dialog.open} onOpenChange={(o) => !o && setDialog({ open: false, data: {} })}>
         <UserDialog initial={dialog.data} onSave={saveUser} onClose={() => setDialog({ open: false, data: {} })} />
       </Dialog>
+      <ConfirmDialog
+        open={confirmDeleteId !== null}
+        title="Удалить пользователя?"
+        description="Учётная запись и все сессии пользователя будут удалены безвозвратно."
+        confirmLabel="Удалить"
+        onConfirm={() => { if (confirmDeleteId !== null) deleteUser(confirmDeleteId); }}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </div>
   );
 }

@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Worker, Equipment } from '@/lib/store';
 import { useAuth } from '@/lib/auth';
 import ReadOnlyBanner from '@/components/ReadOnlyBanner';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 const QUALIFICATIONS = ['I', 'II', 'III', 'IV', 'V', 'VI'] as const;
 const SKILL_OPTIONS = ['Токарные', 'Фрезеровочные', 'Сверлильные', 'Сварочные', 'Слесарные', 'МИГ/МАГ', 'Аргон', 'ЧПУ', 'УЦИ', 'Сборка'];
@@ -154,6 +155,8 @@ export default function SectionResources({ workers, equipment, updateWorker, add
   const [workerDialog, setWorkerDialog] = useState<{ open: boolean; data: Partial<Worker> }>({ open: false, data: {} });
   const [equipDialog, setEquipDialog] = useState<{ open: boolean; data: Partial<Equipment> }>({ open: false, data: {} });
   const [expandedWorker, setExpandedWorker] = useState<number | null>(null);
+  const [confirmWorker, setConfirmWorker] = useState<number | null>(null);
+  const [confirmEquip, setConfirmEquip] = useState<number | null>(null);
 
   const stColor = (s: string) => s === 'Исправно' ? 'bg-racing-light text-white' : s === 'Сломано' ? 'bg-destructive text-destructive-foreground' : 'bg-gold text-racing-dark';
 
@@ -186,7 +189,7 @@ export default function SectionResources({ workers, equipment, updateWorker, add
                   <Switch disabled={!editable} checked={w.available} onCheckedChange={(v) => { updateWorker(w.id, { available: v }); toast.success(`${w.name}: ${v ? 'доступен' : 'недоступен'}`); }} />
                   {editable && <>
                     <button onClick={() => setWorkerDialog({ open: true, data: w })} className="w-7 h-7 rounded hover:bg-secondary flex items-center justify-center"><Icon name="Pencil" size={13} className="text-muted-foreground" /></button>
-                    <button onClick={() => { deleteWorker(w.id); toast.success('Сотрудник удалён'); }} className="w-7 h-7 rounded hover:bg-destructive/10 flex items-center justify-center"><Icon name="Trash2" size={13} className="text-destructive" /></button>
+                    <button onClick={() => setConfirmWorker(w.id)} className="w-7 h-7 rounded hover:bg-destructive/10 flex items-center justify-center"><Icon name="Trash2" size={13} className="text-destructive" /></button>
                   </>}
                 </div>
               </div>
@@ -239,7 +242,7 @@ export default function SectionResources({ workers, equipment, updateWorker, add
                   )}
                   {editable && <>
                     <button onClick={() => setEquipDialog({ open: true, data: e })} className="w-7 h-7 rounded hover:bg-secondary flex items-center justify-center"><Icon name="Pencil" size={13} className="text-muted-foreground" /></button>
-                    <button onClick={() => { deleteEquipment(e.id); toast.success('Удалено'); }} className="w-7 h-7 rounded hover:bg-destructive/10 flex items-center justify-center"><Icon name="Trash2" size={13} className="text-destructive" /></button>
+                    <button onClick={() => setConfirmEquip(e.id)} className="w-7 h-7 rounded hover:bg-destructive/10 flex items-center justify-center"><Icon name="Trash2" size={13} className="text-destructive" /></button>
                   </>}
                 </div>
               </div>
@@ -271,6 +274,23 @@ export default function SectionResources({ workers, equipment, updateWorker, add
         />
       </Dialog>
     </div>
+
+    <ConfirmDialog
+      open={confirmWorker !== null}
+      title="Удалить сотрудника?"
+      description="Сотрудник будет удалён из системы. Это действие необратимо."
+      confirmLabel="Удалить"
+      onConfirm={() => { if (confirmWorker !== null) { deleteWorker(confirmWorker); toast.success('Сотрудник удалён'); } }}
+      onCancel={() => setConfirmWorker(null)}
+    />
+    <ConfirmDialog
+      open={confirmEquip !== null}
+      title="Удалить оборудование?"
+      description="Запись об оборудовании будет удалена из системы."
+      confirmLabel="Удалить"
+      onConfirm={() => { if (confirmEquip !== null) { deleteEquipment(confirmEquip); toast.success('Удалено'); } }}
+      onCancel={() => setConfirmEquip(null)}
+    />
     </>
   );
 }

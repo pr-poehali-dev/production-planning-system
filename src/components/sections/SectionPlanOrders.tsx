@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
@@ -6,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Order } from '@/lib/store';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 const priorityColor = (p: string) =>
   p === 'Особо важный' ? 'bg-destructive text-destructive-foreground'
@@ -26,13 +28,16 @@ interface OrdersProps {
   setOrderSearch: (v: string) => void;
   ordersTab: 'active' | 'archive';
   setOrdersTab: (v: 'active' | 'archive') => void;
+  onDeleteOrder: (id: string) => void;
 }
 
 export function SectionOrders({
   orders, archivedOrders, filteredOrders,
   orderSearch, setOrderSearch, ordersTab, setOrdersTab,
+  onDeleteOrder,
 }: OrdersProps) {
   const nav = useNavigate();
+  const [confirmId, setConfirmId] = useState<string | null>(null);
 
   return (
     <div className="space-y-4">
@@ -88,13 +93,22 @@ export function SectionOrders({
                     <div className="h-full rounded-full bg-gradient-to-r from-racing to-racing-light" style={{ width: `${o.progress}%` }} />
                   </div>
                 </div>
-                <Button
-                  variant="outline" size="sm"
-                  className="border-racing/30 text-racing hover:bg-racing hover:text-white"
-                  onClick={() => nav(`/order/${o.id}`)}
-                >
-                  Открыть <Icon name="ChevronRight" size={16} />
-                </Button>
+                <div className="flex gap-2 items-center">
+                  <Button
+                    variant="outline" size="sm"
+                    className="border-racing/30 text-racing hover:bg-racing hover:text-white"
+                    onClick={() => nav(`/order/${o.id}`)}
+                  >
+                    Открыть <Icon name="ChevronRight" size={16} />
+                  </Button>
+                  <button
+                    onClick={() => setConfirmId(o.id)}
+                    className="w-8 h-8 rounded hover:bg-destructive/10 flex items-center justify-center shrink-0"
+                    title="Удалить приказ"
+                  >
+                    <Icon name="Trash2" size={15} className="text-destructive" />
+                  </button>
+                </div>
               </div>
             </Card>
           ))}
@@ -120,18 +134,36 @@ export function SectionOrders({
                   <p className="text-sm text-muted-foreground">{o.title}</p>
                 </div>
                 <Badge className="bg-secondary text-secondary-foreground">Завершён</Badge>
-                <Button
-                  variant="ghost" size="sm"
-                  className="text-muted-foreground ml-auto"
-                  onClick={() => nav(`/order/${o.id}`)}
-                >
-                  Просмотр <Icon name="ChevronRight" size={16} />
-                </Button>
+                <div className="flex gap-2 items-center ml-auto">
+                  <Button
+                    variant="ghost" size="sm"
+                    className="text-muted-foreground"
+                    onClick={() => nav(`/order/${o.id}`)}
+                  >
+                    Просмотр <Icon name="ChevronRight" size={16} />
+                  </Button>
+                  <button
+                    onClick={() => setConfirmId(o.id)}
+                    className="w-8 h-8 rounded hover:bg-destructive/10 flex items-center justify-center"
+                    title="Удалить из архива"
+                  >
+                    <Icon name="Trash2" size={15} className="text-destructive" />
+                  </button>
+                </div>
               </div>
             </Card>
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!confirmId}
+        title="Удалить приказ?"
+        description={`Приказ ${confirmId} и все его данные (операции, материалы) будут удалены безвозвратно.`}
+        confirmLabel="Удалить приказ"
+        onConfirm={() => confirmId && onDeleteOrder(confirmId)}
+        onCancel={() => setConfirmId(null)}
+      />
     </div>
   );
 }

@@ -126,8 +126,10 @@ function makeOrder(i: number): Order {
   const priority = PRIORITIES[i % PRIORITIES.length];
   const status = STATUSES[i % STATUSES.length];
   const progress = status === 'Завершён' ? 100 : status === 'Не начат' ? 0 : 20 + (i * 13) % 75;
-  const day = (22 + (i * 3) % 28).toString().padStart(2, '0');
-  const month = i < 10 ? '07' : '08';
+  // Корректные рабочие даты: 1-28 для августа, 1-31 для сентября
+  const dayNum = 1 + (i * 3) % 28;
+  const day = dayNum.toString().padStart(2, '0');
+  const month = i < 10 ? '08' : '09';
   return {
     id: `П-${num}`,
     num1: String(1200 + i),
@@ -291,6 +293,7 @@ interface StoreCtx {
   kb: KbItem[];
   aiSettings: AiSettings;
   addOrder: (o: Order) => void;
+  deleteOrder: (id: string) => void;
   cycleStatus: (id: string) => void;
   updateWorker: (id: number, patch: Partial<Worker>) => void;
   addWorker: (w: Omit<Worker, 'id'>) => void;
@@ -331,6 +334,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   });
 
   const addOrder = (o: Order) => setOrders((p) => [o, ...p]);
+  const deleteOrder = (id: string) => {
+    setOrders((p) => p.filter((o) => o.id !== id));
+    setArchivedOrders((p) => p.filter((o) => o.id !== id));
+  };
 
   const cycleStatus = (id: string) =>
     setOrders((p) =>
@@ -387,7 +394,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   return (
     <Ctx.Provider value={{
       orders, archivedOrders, workers, equipment, shifts, stock, plantTasks, kb, aiSettings,
-      addOrder, cycleStatus,
+      addOrder, deleteOrder, cycleStatus,
       updateWorker, addWorker, deleteWorker,
       updateEquipment, addEquipment, deleteEquipment,
       getOrder, setShifts,

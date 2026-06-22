@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Worker, Equipment, StockItem, AiSettings } from '@/lib/store';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 const AI_HOW_IT_WORKS = `КАК РАБОТАЕТ СВЯЗКА «ВаСАП ↔ DEEPSEEK»
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -173,6 +174,7 @@ export function SectionStock({
   addStockItem, updateStockItem, deleteStockItem, adjustStockQty,
 }: StockProps) {
   const nav = useNavigate();
+  const [confirmStockId, setConfirmStockId] = useState<number | null>(null);
 
   return (
     <div className="space-y-4">
@@ -248,7 +250,7 @@ export function SectionStock({
                         <button onClick={() => setEditStock({ ...s })} className="w-7 h-7 rounded hover:bg-secondary flex items-center justify-center" title="Редактировать">
                           <Icon name="Pencil" size={14} className="text-muted-foreground" />
                         </button>
-                        <button onClick={() => { deleteStockItem(s.id); toast.success('Позиция удалена'); }} className="w-7 h-7 rounded hover:bg-destructive/10 flex items-center justify-center" title="Удалить">
+                        <button onClick={() => setConfirmStockId(s.id)} className="w-7 h-7 rounded hover:bg-destructive/10 flex items-center justify-center" title="Удалить">
                           <Icon name="Trash2" size={14} className="text-destructive" />
                         </button>
                       </>
@@ -260,6 +262,14 @@ export function SectionStock({
           </tbody>
         </table>
       </Card>
+      <ConfirmDialog
+        open={confirmStockId !== null}
+        title="Удалить позицию со склада?"
+        description="Позиция будет удалена из склада безвозвратно."
+        confirmLabel="Удалить"
+        onConfirm={() => { if (confirmStockId !== null) { deleteStockItem(confirmStockId); toast.success('Позиция удалена'); } }}
+        onCancel={() => setConfirmStockId(null)}
+      />
     </div>
   );
 }
