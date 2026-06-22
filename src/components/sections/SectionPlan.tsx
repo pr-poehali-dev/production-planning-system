@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Worker, ShiftTask } from '@/lib/store';
+import ShiftReportModal from '@/components/ShiftReportModal';
 
 const PLAN_DAYS = ['23.06', '24.06', '25.06', '26.06', '27.06', '30.06', '01.07', '02.07', '03.07', '04.07'];
 
@@ -17,6 +19,7 @@ export default function SectionPlan({ planAiSummary, workers, shifts }: Props) {
   const nav = useNavigate();
   const [mode, setMode] = useState<'all' | 'worker'>('all');
   const [selectedWorker, setSelectedWorker] = useState<string>('');
+  const [showReport, setShowReport] = useState(false);
 
   const availableWorkers = workers.filter((w) => w.available);
   const activeWorker = availableWorkers.find((w) => w.name === selectedWorker) || availableWorkers[0];
@@ -32,8 +35,9 @@ export default function SectionPlan({ planAiSummary, workers, shifts }: Props) {
         </Card>
       )}
 
-      {/* Mode switcher */}
-      <div className="flex items-center gap-3">
+      {/* Toolbar */}
+      <div className="flex items-center gap-3 flex-wrap">
+        {/* Mode switcher */}
         <div className="flex rounded-lg overflow-hidden border border-border">
           <button
             onClick={() => setMode('all')}
@@ -48,6 +52,7 @@ export default function SectionPlan({ planAiSummary, workers, shifts }: Props) {
             <Icon name="User" size={15} className="inline mr-1.5" />По сотруднику
           </button>
         </div>
+
         {mode === 'worker' && (
           <select
             value={activeWorker?.name || ''}
@@ -57,6 +62,17 @@ export default function SectionPlan({ planAiSummary, workers, shifts }: Props) {
             {availableWorkers.map((w) => <option key={w.id}>{w.name}</option>)}
           </select>
         )}
+
+        {/* Кнопка сменных заданий — всегда справа */}
+        <div className="ml-auto">
+          <Button
+            onClick={() => setShowReport(true)}
+            className="bg-gold text-racing-dark hover:bg-gold-light font-semibold gap-2"
+          >
+            <Icon name="ClipboardList" size={16} />
+            Сменные задания
+          </Button>
+        </div>
       </div>
 
       {/* ALL mode – horizontal scroll table */}
@@ -127,27 +143,47 @@ export default function SectionPlan({ planAiSummary, workers, shifts }: Props) {
               <p className="font-semibold">{activeWorker.name}</p>
               <p className="text-xs text-muted-foreground">{activeWorker.role} · {activeWorker.workplaceNum} · {activeWorker.qualification} разряд</p>
             </div>
-            <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-3">
               <span className="text-xs text-muted-foreground">Загрузка:</span>
               <Badge className={activeWorker.load >= 95 ? 'bg-destructive text-destructive-foreground' : 'bg-racing-light text-white'}>
                 {activeWorker.load}%
               </Badge>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowReport(true)}
+                className="h-7 text-xs border-racing/30 text-racing hover:bg-racing hover:text-white gap-1"
+              >
+                <Icon name="Printer" size={13} />
+                Распечатать
+              </Button>
             </div>
           </Card>
           <div className="grid gap-3">
             {PLAN_DAYS.map((d) => {
               const tasks = shifts.filter((s) => s.worker === activeWorker.name && s.date === d);
               const totalH = tasks.reduce((a, t) => a + t.hours, 0);
+              const dow = (() => {
+                const [dd, mm] = d.split('.');
+                const dt = new Date(`${new Date().getFullYear()}-${mm}-${dd}`);
+                return ['вс','пн','вт','ср','чт','пт','сб'][dt.getDay()];
+              })();
+              const isWeekend = dow === 'сб' || dow === 'вс';
               return (
-                <Card key={d} className="p-4 bg-card/80 border-border/60">
+                <Card key={d} className={`p-4 border-border/60 ${isWeekend ? 'bg-muted/50 opacity-70' : 'bg-card/80'}`}>
                   <div className="flex items-center justify-between mb-2">
-                    <p className="font-display font-medium text-racing">{d}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-display font-medium text-racing">{d}</p>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${isWeekend ? 'bg-destructive/10 text-destructive' : 'bg-secondary text-muted-foreground'}`}>{dow}</span>
+                    </div>
                     <span className={`text-xs font-semibold ${totalH > 10 ? 'text-destructive' : totalH > 0 ? 'text-gold' : 'text-muted-foreground'}`}>
-                      {totalH > 0 ? `${totalH} ч` : 'Нет задач'}
+                      {totalH > 0 ? `${totalH} ч` : isWeekend ? 'Выходной' : 'Нет задач'}
                     </span>
                   </div>
                   {tasks.length === 0 ? (
-                    <p className="text-xs text-muted-foreground italic">Свободно — могут назначаться общезаводские задачи</p>
+                    <p className="text-xs text-muted-foreground italic">
+                      {isWeekend ? 'Выходной день' : 'Свободно — могут назначаться общезаводские задачи'}
+                    </p>
                   ) : (
                     <div className="space-y-2">
                       {tasks.map((t, i) => (
@@ -175,6 +211,15 @@ export default function SectionPlan({ planAiSummary, workers, shifts }: Props) {
           </div>
         </div>
       )}
+
+      {/* Модалка сменных заданий */}
+      <ShiftReportModal
+        open={showReport}
+        onClose={() => setShowReport(false)}
+        workers={workers}
+        shifts={shifts}
+        planDays={PLAN_DAYS}
+      />
     </div>
   );
 }
