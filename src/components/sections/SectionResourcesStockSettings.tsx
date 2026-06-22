@@ -272,6 +272,25 @@ interface SettingsProps {
 }
 
 export function SectionSettings({ aiSettings, setAiSettings }: SettingsProps) {
+  const addDocFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const content = (ev.target?.result as string) || '';
+      setAiSettings({
+        docFiles: [...(aiSettings.docFiles || []), { name: file.name, content }],
+      });
+      toast.success(`Файл добавлен: ${file.name}`);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const removeDocFile = (name: string) => {
+    setAiSettings({ docFiles: (aiSettings.docFiles || []).filter((f) => f.name !== name) });
+  };
+
   return (
     <div className="grid lg:grid-cols-2 gap-5 max-w-5xl">
       <Card className="p-6 bg-card/80 border-border/60 animate-fade-in">
@@ -292,15 +311,24 @@ export function SectionSettings({ aiSettings, setAiSettings }: SettingsProps) {
             <Textarea value={aiSettings.systemPrompt} onChange={(e) => setAiSettings({ systemPrompt: e.target.value })} rows={8} className="text-xs font-mono" />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground font-medium block mb-1">Документация для AI</label>
-            <Textarea
-              value={aiSettings.userDocs}
-              onChange={(e) => setAiSettings({ userDocs: e.target.value })}
-              rows={5}
-              placeholder="Вставьте ТУ, регламенты, особые условия производства..."
-              className="text-xs"
-            />
-            <p className="text-[10px] text-muted-foreground mt-1">Передаётся DeepSeek при каждом пересчёте плана</p>
+            <label className="text-xs text-muted-foreground font-medium block mb-2">Документация для AI (Word, Excel, PDF)</label>
+            <div className="space-y-1.5 mb-2">
+              {(aiSettings.docFiles || []).map((f) => (
+                <div key={f.name} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary/50">
+                  <Icon name={f.name.endsWith('.pdf') ? 'FileType' : f.name.endsWith('.xlsx') ? 'Sheet' : 'FileText'} size={16} className="text-racing shrink-0" />
+                  <span className="text-sm flex-1 truncate">{f.name}</span>
+                  <button onClick={() => removeDocFile(f.name)} className="text-destructive hover:text-destructive/70 text-xs shrink-0">✕</button>
+                </div>
+              ))}
+              {(aiSettings.docFiles || []).length === 0 && (
+                <p className="text-xs text-muted-foreground italic">Файлы не загружены</p>
+              )}
+            </div>
+            <label className="cursor-pointer flex items-center gap-2 px-3 py-2 border border-dashed border-border rounded-lg text-muted-foreground text-sm hover:border-racing/50 transition-colors">
+              <Icon name="Upload" size={16} /> Прикрепить файл документации
+              <input type="file" accept=".docx,.xlsx,.pdf,.txt" className="hidden" onChange={addDocFile} />
+            </label>
+            <p className="text-[10px] text-muted-foreground mt-1">Файлы передаются DeepSeek при каждом пересчёте плана</p>
           </div>
           <Button onClick={() => toast.success('Настройки сохранены')} className="bg-racing text-white hover:bg-racing-light">
             Сохранить

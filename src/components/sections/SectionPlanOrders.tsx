@@ -5,9 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Order, Worker, ShiftTask } from '@/lib/store';
-
-const PLAN_DAYS = ['23.06', '24.06', '25.06', '26.06', '27.06', '30.06', '01.07', '02.07', '03.07', '04.07'];
+import { Order } from '@/lib/store';
 
 const priorityColor = (p: string) =>
   p === 'Особо важный' ? 'bg-destructive text-destructive-foreground'
@@ -19,74 +17,6 @@ const orderStatusColor = (s: string) =>
   s === 'Завершён' ? 'bg-racing-light text-white'
     : s === 'В работе' ? 'bg-gold text-racing-dark'
     : 'bg-secondary text-secondary-foreground';
-
-interface PlanProps {
-  planAiSummary: string;
-  workers: Worker[];
-  shifts: ShiftTask[];
-}
-
-export function SectionPlan({ planAiSummary, workers, shifts }: PlanProps) {
-  const nav = useNavigate();
-
-  return (
-    <div className="space-y-4">
-      {planAiSummary && (
-        <Card className="p-4 bg-racing-dark/5 border-racing/20 animate-fade-in">
-          <p className="text-sm flex items-start gap-2">
-            <Icon name="Sparkles" size={16} className="text-gold mt-0.5 shrink-0" />
-            <span>{planAiSummary}</span>
-          </p>
-        </Card>
-      )}
-      <Card className="p-6 bg-card/80 border-border/60 animate-fade-in overflow-x-auto">
-        <p className="text-xs text-muted-foreground mb-4">
-          Пооперационный план — основа сменных заданий. Нажмите ячейку чтобы открыть приказ.
-        </p>
-        <table className="w-full text-sm border-collapse">
-          <thead>
-            <tr>
-              <th className="text-left p-2 font-display font-medium text-racing sticky left-0 bg-card min-w-[140px]">Сотрудник</th>
-              {PLAN_DAYS.map((d) => (
-                <th key={d} className="p-2 font-medium text-muted-foreground text-xs whitespace-nowrap min-w-[110px]">{d}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {workers.filter((w) => w.available).map((w) => (
-              <tr key={w.id} className="border-t border-border/50 align-top">
-                <td className="p-2 font-medium sticky left-0 bg-card whitespace-nowrap">
-                  {w.name}<br /><span className="text-xs text-muted-foreground font-normal">{w.role}</span>
-                </td>
-                {PLAN_DAYS.map((d) => {
-                  const tasks = shifts.filter((s) => s.worker === w.name && s.date === d);
-                  return (
-                    <td key={d} className="p-1.5">
-                      {tasks.length === 0
-                        ? <div className="min-h-[44px] rounded border border-dashed border-border/40" />
-                        : tasks.map((t, i) => (
-                          <div
-                            key={i}
-                            onClick={() => nav(`/order/${t.order}`)}
-                            className="rounded-md bg-racing/10 border border-racing/20 p-1.5 mb-1 hover:bg-racing/20 cursor-pointer"
-                          >
-                            <p className="text-[11px] font-semibold text-racing">{t.order}</p>
-                            <p className="text-[10px] text-foreground leading-tight">{t.operation}</p>
-                            <p className="text-[10px] text-gold font-semibold mt-0.5">план: {t.planQty} шт · {t.hours} ч</p>
-                          </div>
-                        ))
-                      }
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Card>
-    </div>
-  );
-}
 
 interface OrdersProps {
   orders: Order[];

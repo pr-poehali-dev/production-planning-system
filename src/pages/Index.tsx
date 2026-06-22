@@ -3,8 +3,11 @@ import { toast } from 'sonner';
 import { useStore, StockItem } from '@/lib/store';
 import SidebarNav, { PageHero, Section } from '@/components/sections/SidebarNav';
 import SectionDashboard from '@/components/sections/SectionDashboard';
-import { SectionPlan, SectionOrders } from '@/components/sections/SectionPlanOrders';
-import { SectionResources, SectionStock, SectionSettings } from '@/components/sections/SectionResourcesStockSettings';
+import SectionPlan from '@/components/sections/SectionPlan';
+import { SectionOrders } from '@/components/sections/SectionPlanOrders';
+import SectionResources from '@/components/sections/SectionResources';
+import { SectionStock, SectionSettings } from '@/components/sections/SectionResourcesStockSettings';
+import SectionKnowledgeBase from '@/components/sections/SectionKnowledgeBase';
 
 const PLAN_DAYS = ['23.06', '24.06', '25.06', '26.06', '27.06', '30.06', '01.07', '02.07', '03.07', '04.07'];
 
@@ -18,9 +21,12 @@ export default function Index() {
   const [planAiSummary, setPlanAiSummary] = useState('');
 
   const {
-    orders, archivedOrders, workers, equipment, shifts, stock, aiSettings,
-    updateWorker, updateEquipment, addStockItem, updateStockItem, deleteStockItem,
-    adjustStockQty, setAiSettings, setShifts,
+    orders, archivedOrders, workers, equipment, shifts, stock, kb, aiSettings,
+    updateWorker, addWorker, deleteWorker,
+    updateEquipment, addEquipment, deleteEquipment,
+    addStockItem, updateStockItem, deleteStockItem, adjustStockQty,
+    addKbItem, updateKbItem, deleteKbItem,
+    setAiSettings, setShifts,
   } = useStore();
 
   const activeOrders = orders.filter((o) => o.status !== 'Завершён');
@@ -57,12 +63,20 @@ export default function Index() {
             status: o.status, deadline: o.deadline,
             operations: o.operations, materials: o.materials,
           })),
-          workers: workers.map((w) => ({ name: w.name, role: w.role, load: w.load, available: w.available })),
-          equipment: equipment.map((e) => ({ name: e.name, type: e.type, state: e.state, count: e.count, busy: e.busy })),
+          workers: workers.map((w) => ({
+            name: w.name, role: w.role, load: w.load,
+            available: w.available, qualification: w.qualification,
+            skills: w.skills, workplaceNum: w.workplaceNum,
+          })),
+          equipment: equipment.map((e) => ({
+            name: e.name, type: e.type, state: e.state,
+            count: e.count, busy: e.busy, workplaceNum: e.workplaceNum,
+          })),
           stock: stock.map((s) => ({ name: s.name, steel: s.steel, spec: s.spec, qty: s.qty, unit: s.unit })),
           planDays: PLAN_DAYS,
           systemPrompt: aiSettings.systemPrompt,
           userDocs: aiSettings.userDocs,
+          docFiles: (aiSettings.docFiles || []).map((f) => ({ name: f.name, content: f.content })),
         }),
       });
       const data = await resp.json();
@@ -92,6 +106,7 @@ export default function Index() {
             <SectionDashboard
               orders={orders}
               workers={workers}
+              equipment={equipment}
               activeOrders={activeOrders}
               opsInWork={opsInWork}
             />
@@ -122,7 +137,11 @@ export default function Index() {
               workers={workers}
               equipment={equipment}
               updateWorker={updateWorker}
+              addWorker={addWorker}
+              deleteWorker={deleteWorker}
               updateEquipment={updateEquipment}
+              addEquipment={addEquipment}
+              deleteEquipment={deleteEquipment}
             />
           )}
 
@@ -137,6 +156,15 @@ export default function Index() {
               updateStockItem={updateStockItem}
               deleteStockItem={deleteStockItem}
               adjustStockQty={adjustStockQty}
+            />
+          )}
+
+          {section === 'kb' && (
+            <SectionKnowledgeBase
+              kb={kb}
+              addKbItem={addKbItem}
+              updateKbItem={updateKbItem}
+              deleteKbItem={deleteKbItem}
             />
           )}
 

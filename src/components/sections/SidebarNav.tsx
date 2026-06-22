@@ -4,7 +4,7 @@ import CreateOrderDialog from '@/components/CreateOrderDialog';
 
 const HERO = 'https://cdn.poehali.dev/projects/6dfb525c-95c6-4150-9365-b462c9725df0/files/406dc801-42c9-4cc0-ab3f-52614a27c41b.jpg';
 
-export type Section = 'dashboard' | 'plan' | 'orders' | 'resources' | 'stock' | 'settings';
+export type Section = 'dashboard' | 'plan' | 'orders' | 'resources' | 'stock' | 'kb' | 'settings';
 
 export const NAV: { id: Section; label: string; icon: string }[] = [
   { id: 'dashboard', label: 'Дашборд', icon: 'LayoutDashboard' },
@@ -12,6 +12,7 @@ export const NAV: { id: Section; label: string; icon: string }[] = [
   { id: 'orders', label: 'Приказы', icon: 'ClipboardList' },
   { id: 'resources', label: 'Ресурсы', icon: 'Users' },
   { id: 'stock', label: 'Склад', icon: 'Package' },
+  { id: 'kb', label: 'База знаний', icon: 'BookOpen' },
   { id: 'settings', label: 'Настройки', icon: 'Settings' },
 ];
 
@@ -21,6 +22,7 @@ const SECTION_TITLE: Record<Section, string> = {
   orders: 'Приказы',
   resources: 'Сотрудники и оборудование',
   stock: 'Склад',
+  kb: 'База знаний',
   settings: 'Настройки системы',
 };
 
@@ -45,7 +47,7 @@ export default function SidebarNav({ section, setSection }: SidebarProps) {
           </div>
         </div>
       </div>
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {NAV.map((n) => (
           <button
             key={n.id}
