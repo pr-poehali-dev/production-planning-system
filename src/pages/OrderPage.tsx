@@ -68,7 +68,7 @@ export default function OrderPage() {
             <p className="text-white/60 text-sm">Приказ № {order.num1}/{order.num2} · {order.type} · класс {order.cls}</p>
           </div>
           <Button
-            onClick={() => { cycleStatus(order.id); toast.success(`Статус изменён`); }}
+            onClick={() => { cycleStatus(order.id).then(() => toast.success('Статус изменён')); }}
             className={`${btn.cls} font-semibold shadow-lg`}
           >
             <Icon name={btn.icon} size={18} /> {btn.label}

@@ -73,7 +73,7 @@ export default function CreateOrderDialog() {
     reader.readAsDataURL(file);
   };
 
-  const submit = () => {
+  const submit = async () => {
     if (!num1 || !title) { toast.error('Заполните номер и наименование'); return; }
     const order: Order = {
       id: `П-${num1}`, num1, num2, title, type, cls,
@@ -85,7 +85,7 @@ export default function CreateOrderDialog() {
         ...(laborFile ? [{ name: laborFile.name, kind: 'xlsx' as const }] : []),
       ],
     };
-    addOrder(order);
+    await addOrder(order);
     toast.success(`Приказ ${order.id} создан`);
     setOpen(false);
     setNum1(''); setNum2(''); setTitle(''); setDeadline('');

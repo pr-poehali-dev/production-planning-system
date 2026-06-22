@@ -1,4 +1,6 @@
 {
+  "files-api": "https://functions.poehali.dev/209bdfed-b101-49d6-8d38-a409bdafe9f1",
+  "data-api": "https://functions.poehali.dev/fe595aa5-5d4d-4565-aea0-54136aec6207",
   "auth": "https://functions.poehali.dev/fed1ef62-586b-4a9a-b23f-701bb2b39cfb",
   "order-ai": "https://functions.poehali.dev/eda779a2-2629-4b55-91e6-e27cd0282ba2",
   "plan-ai": "https://functions.poehali.dev/a570be4e-feb4-4a70-9be3-920449b6d5d1"

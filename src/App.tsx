@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { StoreProvider } from "@/lib/store";
+import { StoreProvider, useStore } from "@/lib/store";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import Icon from "@/components/ui/icon";
 import Login from "./pages/Login";
@@ -13,6 +13,19 @@ import OrderPage from "./pages/OrderPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+function StoreGate({ children }: { children: React.ReactNode }) {
+  const { loading } = useStore();
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-racing-dark gap-3">
+        <Icon name="Loader2" size={40} className="animate-spin text-gold" />
+        <p className="text-white/60 text-sm">Загрузка данных...</p>
+      </div>
+    );
+  }
+  return <>{children}</>;
+}
 
 function Gate() {
   const { user, loading } = useAuth();
@@ -30,14 +43,16 @@ function Gate() {
 
   return (
     <StoreProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/order/:id" element={<OrderPage />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <StoreGate>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/order/:id" element={<OrderPage />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </StoreGate>
     </StoreProvider>
   );
 }

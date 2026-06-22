@@ -22,15 +22,16 @@ export default function Index() {
   const [planAiSummary, setPlanAiSummary] = useState('');
 
   const {
+    loading: storeLoading,
     orders, archivedOrders, workers, equipment, shifts, stock, kb, aiSettings,
-    addOrder: _addOrder, deleteOrder,
+    deleteOrder,
     updateWorker, addWorker, deleteWorker,
     updateEquipment, addEquipment, deleteEquipment,
     addStockItem, updateStockItem, deleteStockItem, adjustStockQty,
     addKbItem, updateKbItem, deleteKbItem,
     setAiSettings, setShifts,
   } = useStore();
-  void _addOrder; // used via CreateOrderDialog which has direct store access
+  void storeLoading; // используется в App.tsx через useAuth
 
   const activeOrders = orders.filter((o) => o.status !== 'Завершён');
   const opsInWork = orders.flatMap((o) => o.operations).filter((op) => op.status === 'В процессе').length;

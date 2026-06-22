@@ -1,0 +1,37 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "List workers",
+      "method": "POST",
+      "path": "/",
+      "body": {"entity": "workers", "action": "list"},
+      "expectedStatus": 200,
+      "expectedBody": {"ok": true},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "List orders",
+      "method": "POST",
+      "path": "/",
+      "body": {"entity": "orders", "action": "list"},
+      "expectedStatus": 200,
+      "expectedBody": {"ok": true},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Get AI settings",
+      "method": "POST",
+      "path": "/",
+      "body": {"entity": "ai_settings", "action": "get"},
+      "expectedStatus": 200,
+      "expectedBody": {"ok": true},
+      "bodyMatcher": "partial"
+    }
+  ]
+}
