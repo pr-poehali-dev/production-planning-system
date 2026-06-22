@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { toast } from 'sonner';
 import { Worker, Equipment, StockItem, AiSettings } from '@/lib/store';
 
-const AI_HOW_IT_WORKS = `КАК РАБОТАЕТ СВЯЗКА «ГИДРОПЛАН ↔ DEEPSEEK»
+const AI_HOW_IT_WORKS = `КАК РАБОТАЕТ СВЯЗКА «ВаСАП ↔ DEEPSEEK»
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 АРХИТЕКТУРА

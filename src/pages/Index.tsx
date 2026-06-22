@@ -6,8 +6,9 @@ import SectionDashboard from '@/components/sections/SectionDashboard';
 import SectionPlan from '@/components/sections/SectionPlan';
 import { SectionOrders } from '@/components/sections/SectionPlanOrders';
 import SectionResources from '@/components/sections/SectionResources';
-import { SectionStock, SectionSettings } from '@/components/sections/SectionResourcesStockSettings';
+import { SectionStock } from '@/components/sections/SectionResourcesStockSettings';
 import SectionKnowledgeBase from '@/components/sections/SectionKnowledgeBase';
+import SectionAdmin from '@/components/sections/SectionAdmin';
 
 const PLAN_DAYS = ['23.06', '24.06', '25.06', '26.06', '27.06', '30.06', '01.07', '02.07', '03.07', '04.07'];
 
@@ -168,8 +169,8 @@ export default function Index() {
             />
           )}
 
-          {section === 'settings' && (
-            <SectionSettings
+          {section === 'admin' && (
+            <SectionAdmin
               aiSettings={aiSettings}
               setAiSettings={setAiSettings}
             />

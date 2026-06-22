@@ -1,10 +1,12 @@
 import Icon from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import CreateOrderDialog from '@/components/CreateOrderDialog';
+import { useAuth, ROLE_LABELS } from '@/lib/auth';
 
+const LOGO = 'https://cdn.poehali.dev/projects/6dfb525c-95c6-4150-9365-b462c9725df0/bucket/e8908ba4-5419-40ea-8f5c-3c67443e85b5.png';
 const HERO = 'https://cdn.poehali.dev/projects/6dfb525c-95c6-4150-9365-b462c9725df0/files/406dc801-42c9-4cc0-ab3f-52614a27c41b.jpg';
 
-export type Section = 'dashboard' | 'plan' | 'orders' | 'resources' | 'stock' | 'kb' | 'settings';
+export type Section = 'dashboard' | 'plan' | 'orders' | 'resources' | 'stock' | 'kb' | 'admin';
 
 export const NAV: { id: Section; label: string; icon: string }[] = [
   { id: 'dashboard', label: 'Дашборд', icon: 'LayoutDashboard' },
@@ -13,7 +15,7 @@ export const NAV: { id: Section; label: string; icon: string }[] = [
   { id: 'resources', label: 'Ресурсы', icon: 'Users' },
   { id: 'stock', label: 'Склад', icon: 'Package' },
   { id: 'kb', label: 'База знаний', icon: 'BookOpen' },
-  { id: 'settings', label: 'Настройки', icon: 'Settings' },
+  { id: 'admin', label: 'Управление', icon: 'ShieldCheck' },
 ];
 
 const SECTION_TITLE: Record<Section, string> = {
@@ -23,7 +25,7 @@ const SECTION_TITLE: Record<Section, string> = {
   resources: 'Сотрудники и оборудование',
   stock: 'Склад',
   kb: 'База знаний',
-  settings: 'Настройки системы',
+  admin: 'Управление системой',
 };
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
@@ -34,21 +36,22 @@ interface SidebarProps {
 }
 
 export default function SidebarNav({ section, setSection }: SidebarProps) {
+  const { user, logout, canView } = useAuth();
+  const visibleNav = NAV.filter((n) => canView(n.id));
+
   return (
     <aside className="w-64 shrink-0 bg-racing-dark text-white flex flex-col fixed h-screen z-20">
-      <div className="px-6 py-6 border-b border-white/10">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-lg bg-gold flex items-center justify-center">
-            <Icon name="Cog" size={22} className="text-racing-dark" />
-          </div>
+      <div className="px-6 py-5 border-b border-white/10">
+        <div className="flex items-center gap-3">
+          <img src={LOGO} alt="ТГК" className="w-11 h-11 object-contain bg-white rounded-lg p-1" />
           <div>
-            <h1 className="font-display text-xl tracking-wide leading-none">ГИДРОПЛАН</h1>
-            <p className="text-[10px] text-gold/80 uppercase tracking-widest mt-0.5">Производство</p>
+            <h1 className="font-display text-2xl tracking-wide leading-none">ВаСАП</h1>
+            <p className="text-[9px] text-gold/80 uppercase tracking-[0.15em] mt-1">Тульская Гидравлич. Компания</p>
           </div>
         </div>
       </div>
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {NAV.map((n) => (
+        {visibleNav.map((n) => (
           <button
             key={n.id}
             onClick={() => setSection(n.id)}
@@ -60,12 +63,22 @@ export default function SidebarNav({ section, setSection }: SidebarProps) {
           </button>
         ))}
       </nav>
-      <div className="px-4 py-4 border-t border-white/10 flex items-center gap-3">
-        <div className="w-9 h-9 rounded-full bg-gold/20 flex items-center justify-center text-gold font-semibold text-sm">АП</div>
-        <div className="text-xs">
-          <p className="font-medium">Админ</p>
-          <p className="text-white/50">Полный доступ</p>
+      <div className="px-3 py-3 border-t border-white/10">
+        <div className="flex items-center gap-3 px-1 mb-2">
+          <div className="w-9 h-9 rounded-full bg-gold/20 flex items-center justify-center text-gold font-semibold text-sm">
+            {user?.fullName?.[0] || 'П'}
+          </div>
+          <div className="text-xs min-w-0 flex-1">
+            <p className="font-medium truncate">{user?.fullName}</p>
+            <p className="text-gold/70">{user ? ROLE_LABELS[user.role] : ''}</p>
+          </div>
         </div>
+        <button
+          onClick={logout}
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-white/60 hover:bg-white/10 hover:text-white transition-all"
+        >
+          <Icon name="LogOut" size={15} /> Выйти
+        </button>
       </div>
     </aside>
   );
@@ -80,6 +93,8 @@ interface HeroProps {
 }
 
 export function PageHero({ section, recalc, onRecalc }: HeroProps) {
+  const { canEdit } = useAuth();
+
   return (
     <div className="relative h-44 overflow-hidden">
       <img src={HERO} alt="" className="absolute inset-0 w-full h-full object-cover" />
@@ -89,8 +104,8 @@ export function PageHero({ section, recalc, onRecalc }: HeroProps) {
         <h2 className="text-white font-display text-3xl tracking-wide">{SECTION_TITLE[section]}</h2>
       </div>
       <div className="absolute right-8 top-1/2 -translate-y-1/2 flex gap-3">
-        {section === 'orders' && <CreateOrderDialog />}
-        {(section === 'plan' || section === 'orders') && (
+        {section === 'orders' && canEdit('orders') && <CreateOrderDialog />}
+        {(section === 'plan' || section === 'orders') && canEdit('plan') && (
           <Button
             onClick={onRecalc}
             disabled={recalc}

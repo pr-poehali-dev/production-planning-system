@@ -9,6 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Worker, Equipment } from '@/lib/store';
+import { useAuth } from '@/lib/auth';
+import ReadOnlyBanner from '@/components/ReadOnlyBanner';
 
 const QUALIFICATIONS = ['I', 'II', 'III', 'IV', 'V', 'VI'] as const;
 const SKILL_OPTIONS = ['Токарные', 'Фрезеровочные', 'Сверлильные', 'Сварочные', 'Слесарные', 'МИГ/МАГ', 'Аргон', 'ЧПУ', 'УЦИ', 'Сборка'];
@@ -147,6 +149,8 @@ interface Props {
 }
 
 export default function SectionResources({ workers, equipment, updateWorker, addWorker, deleteWorker, updateEquipment, addEquipment, deleteEquipment }: Props) {
+  const { canEdit } = useAuth();
+  const editable = canEdit('resources');
   const [workerDialog, setWorkerDialog] = useState<{ open: boolean; data: Partial<Worker> }>({ open: false, data: {} });
   const [equipDialog, setEquipDialog] = useState<{ open: boolean; data: Partial<Equipment> }>({ open: false, data: {} });
   const [expandedWorker, setExpandedWorker] = useState<number | null>(null);
@@ -154,14 +158,18 @@ export default function SectionResources({ workers, equipment, updateWorker, add
   const stColor = (s: string) => s === 'Исправно' ? 'bg-racing-light text-white' : s === 'Сломано' ? 'bg-destructive text-destructive-foreground' : 'bg-gold text-racing-dark';
 
   return (
+    <>
+    {!editable && <ReadOnlyBanner />}
     <div className="grid lg:grid-cols-2 gap-5">
       {/* Workers */}
       <Card className="p-6 bg-card/80 border-border/60 animate-fade-in">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-display text-lg text-racing flex items-center gap-2"><Icon name="Users" size={18} /> Сотрудники</h3>
-          <Button size="sm" onClick={() => setWorkerDialog({ open: true, data: {} })} className="bg-gold text-racing-dark hover:bg-gold-light h-8 text-xs">
-            <Icon name="Plus" size={14} /> Добавить
-          </Button>
+          {editable && (
+            <Button size="sm" onClick={() => setWorkerDialog({ open: true, data: {} })} className="bg-gold text-racing-dark hover:bg-gold-light h-8 text-xs">
+              <Icon name="Plus" size={14} /> Добавить
+            </Button>
+          )}
         </div>
         <div className="space-y-2">
           {workers.map((w) => (
@@ -175,9 +183,11 @@ export default function SectionResources({ workers, equipment, updateWorker, add
                   </div>
                 </button>
                 <div className="flex items-center gap-2 ml-2">
-                  <Switch checked={w.available} onCheckedChange={(v) => { updateWorker(w.id, { available: v }); toast.success(`${w.name}: ${v ? 'доступен' : 'недоступен'}`); }} />
-                  <button onClick={() => setWorkerDialog({ open: true, data: w })} className="w-7 h-7 rounded hover:bg-secondary flex items-center justify-center"><Icon name="Pencil" size={13} className="text-muted-foreground" /></button>
-                  <button onClick={() => { deleteWorker(w.id); toast.success('Сотрудник удалён'); }} className="w-7 h-7 rounded hover:bg-destructive/10 flex items-center justify-center"><Icon name="Trash2" size={13} className="text-destructive" /></button>
+                  <Switch disabled={!editable} checked={w.available} onCheckedChange={(v) => { updateWorker(w.id, { available: v }); toast.success(`${w.name}: ${v ? 'доступен' : 'недоступен'}`); }} />
+                  {editable && <>
+                    <button onClick={() => setWorkerDialog({ open: true, data: w })} className="w-7 h-7 rounded hover:bg-secondary flex items-center justify-center"><Icon name="Pencil" size={13} className="text-muted-foreground" /></button>
+                    <button onClick={() => { deleteWorker(w.id); toast.success('Сотрудник удалён'); }} className="w-7 h-7 rounded hover:bg-destructive/10 flex items-center justify-center"><Icon name="Trash2" size={13} className="text-destructive" /></button>
+                  </>}
                 </div>
               </div>
               {expandedWorker === w.id && (
@@ -200,9 +210,11 @@ export default function SectionResources({ workers, equipment, updateWorker, add
       <Card className="p-6 bg-card/80 border-border/60 animate-fade-in">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-display text-lg text-racing flex items-center gap-2"><Icon name="Drill" size={18} /> Оборудование</h3>
-          <Button size="sm" onClick={() => setEquipDialog({ open: true, data: {} })} className="bg-gold text-racing-dark hover:bg-gold-light h-8 text-xs">
-            <Icon name="Plus" size={14} /> Добавить
-          </Button>
+          {editable && (
+            <Button size="sm" onClick={() => setEquipDialog({ open: true, data: {} })} className="bg-gold text-racing-dark hover:bg-gold-light h-8 text-xs">
+              <Icon name="Plus" size={14} /> Добавить
+            </Button>
+          )}
         </div>
         <div className="space-y-2">
           {equipment.map((e) => {
@@ -218,11 +230,17 @@ export default function SectionResources({ workers, equipment, updateWorker, add
                   {e.note && <p className="text-xs text-muted-foreground/60 italic">{e.note}</p>}
                 </div>
                 <div className="flex items-center gap-1.5 ml-2">
-                  <button onClick={() => { updateEquipment(e.id, { state: nextState }); toast.success(`${e.name} → ${nextState}`, { description: nextState !== 'Исправно' ? 'Учтётся при пересчёте плана' : undefined }); }}>
-                    <Badge className={`${stColor(e.state)} cursor-pointer select-none`}>{e.state}</Badge>
-                  </button>
-                  <button onClick={() => setEquipDialog({ open: true, data: e })} className="w-7 h-7 rounded hover:bg-secondary flex items-center justify-center"><Icon name="Pencil" size={13} className="text-muted-foreground" /></button>
-                  <button onClick={() => { deleteEquipment(e.id); toast.success('Удалено'); }} className="w-7 h-7 rounded hover:bg-destructive/10 flex items-center justify-center"><Icon name="Trash2" size={13} className="text-destructive" /></button>
+                  {editable ? (
+                    <button onClick={() => { updateEquipment(e.id, { state: nextState }); toast.success(`${e.name} → ${nextState}`, { description: nextState !== 'Исправно' ? 'Учтётся при пересчёте плана' : undefined }); }}>
+                      <Badge className={`${stColor(e.state)} cursor-pointer select-none`}>{e.state}</Badge>
+                    </button>
+                  ) : (
+                    <Badge className={`${stColor(e.state)} select-none`}>{e.state}</Badge>
+                  )}
+                  {editable && <>
+                    <button onClick={() => setEquipDialog({ open: true, data: e })} className="w-7 h-7 rounded hover:bg-secondary flex items-center justify-center"><Icon name="Pencil" size={13} className="text-muted-foreground" /></button>
+                    <button onClick={() => { deleteEquipment(e.id); toast.success('Удалено'); }} className="w-7 h-7 rounded hover:bg-destructive/10 flex items-center justify-center"><Icon name="Trash2" size={13} className="text-destructive" /></button>
+                  </>}
                 </div>
               </div>
             );
@@ -253,5 +271,6 @@ export default function SectionResources({ workers, equipment, updateWorker, add
         />
       </Dialog>
     </div>
+    </>
   );
 }

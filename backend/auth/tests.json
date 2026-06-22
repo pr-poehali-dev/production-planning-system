@@ -1,0 +1,28 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Admin login works",
+      "method": "POST",
+      "path": "/",
+      "body": {"action": "login", "login": "admin", "password": "admin123"},
+      "expectedStatus": 200,
+      "expectedBody": {"ok": true},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Wrong password rejected",
+      "method": "POST",
+      "path": "/",
+      "body": {"action": "login", "login": "admin", "password": "wrong"},
+      "expectedStatus": 401,
+      "expectedBody": {"ok": false},
+      "bodyMatcher": "partial"
+    }
+  ]
+}

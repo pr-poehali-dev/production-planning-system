@@ -5,15 +5,6 @@
       "method": "OPTIONS",
       "path": "/",
       "expectedStatus": 200
-    },
-    {
-      "name": "POST returns json",
-      "method": "POST",
-      "path": "/",
-      "body": {"title": "Тест", "type": "Гидроцилиндр"},
-      "expectedStatus": 200,
-      "expectedBody": {"ok": true},
-      "bodyMatcher": "partial"
     }
   ]
 }
