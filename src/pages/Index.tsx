@@ -55,40 +55,66 @@ export default function Index() {
 
   const handleRecalc = async () => {
     setRecalc(true);
-    toast.loading('DeepSeek анализирует данные...', { id: 'r' });
+    // Считаем активные приказы до отправки
+    const activeCount = orders.filter((o) => o.status !== 'Завершён').length;
+    toast.loading(`DeepSeek анализирует ${activeCount} активных приказов...`, { id: 'r' });
     try {
       const resp = await fetch(aiSettings.functionUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          // Фронтенд отправляет ВСЕ данные — бэкенд сам фильтрует и сжимает
           orders: orders.map((o) => ({
             id: o.id, title: o.title, priority: o.priority,
             status: o.status, deadline: o.deadline,
-            operations: o.operations, materials: o.materials,
+            operations: o.operations.map((op) => ({
+              id: op.id, name: op.name, work: op.work,
+              hours: op.hours, qty: op.qty,
+              predecessors: op.predecessors,
+              worker: op.worker,
+              status: op.status,
+            })),
+            materials: o.materials.map((m) => ({ name: m.name, status: m.status })),
           })),
           workers: workers.map((w) => ({
-            name: w.name, role: w.role, load: w.load,
-            available: w.available, qualification: w.qualification,
-            skills: w.skills, workplaceNum: w.workplaceNum,
+            name: w.name, role: w.role,
+            available: w.available,
+            skills: w.skills,
+            load: w.load,
           })),
           equipment: equipment.map((e) => ({
             name: e.name, type: e.type, state: e.state,
-            count: e.count, busy: e.busy, workplaceNum: e.workplaceNum,
           })),
-          stock: stock.map((s) => ({ name: s.name, steel: s.steel, spec: s.spec, qty: s.qty, unit: s.unit })),
+          stock: stock.map((s) => ({ name: s.name, qty: s.qty, unit: s.unit })),
           planDays: PLAN_DAYS,
           systemPrompt: aiSettings.systemPrompt,
           userDocs: aiSettings.userDocs,
-          docFiles: (aiSettings.docFiles || []).map((f) => ({ name: f.name, content: f.content })),
         }),
       });
       const data = await resp.json();
       if (data.ok && data.plan?.shifts) {
         setShifts(data.plan.shifts);
         setPlanAiSummary(data.plan.summary || '');
-        toast.success('План обновлён DeepSeek', { id: 'r', description: data.plan.summary });
+
+        // Показываем статистику пользователю
+        const stats = data.meta?.stats;
+        const warnings = data.meta?.warnings || [];
+        const tokens = data.meta?.actual_tokens;
+
+        let desc = data.plan.summary || '';
+        if (stats) desc += ` · ${stats.valid} задач в плане`;
+        if (tokens?.total_tokens) desc += ` · ~${tokens.total_tokens} токенов`;
+
+        toast.success('План обновлён DeepSeek', { id: 'r', description: desc });
+
+        // Предупреждения валидации — в консоль (для отладки)
+        if (warnings.length > 0) {
+          console.warn('[ВаСАП план] Предупреждения:', warnings);
+        }
       } else {
-        toast.error(data.error || 'Ошибка DeepSeek', { id: 'r' });
+        const errMsg = data.error || 'Ошибка DeepSeek';
+        const detail = data.detail ? ` (${data.detail.slice(0, 100)})` : '';
+        toast.error(errMsg + detail, { id: 'r' });
       }
     } catch {
       toast.error('Не удалось связаться с сервером', { id: 'r' });
